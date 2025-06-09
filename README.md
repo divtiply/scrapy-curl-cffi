@@ -20,12 +20,12 @@ pip install scrapy-curl-cffi[compression]
 Update your Scrapy project settings as follows:
 
 ```python
-"DOWNLOAD_HANDLERS": {
+DOWNLOAD_HANDLERS = {
     "http": "scrapy_curl_cffi.handler.CurlCffiDownloadHandler",
     "https": "scrapy_curl_cffi.handler.CurlCffiDownloadHandler",
 }
 
-"DOWNLOADER_MIDDLEWARES": {
+DOWNLOADER_MIDDLEWARES = {
     "scrapy_curl_cffi.middlewares.CurlCffiMiddleware": 200,
     "scrapy_curl_cffi.middlewares.DefaultHeadersMiddleware": 400,
     "scrapy_curl_cffi.middlewares.UserAgentMiddleware": 500,
@@ -33,7 +33,7 @@ Update your Scrapy project settings as follows:
     "scrapy.downloadermiddlewares.useragent.UserAgentMiddleware": None,
 }
 
-"TWISTED_REACTOR": "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
+TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 ```
 
 ## Usage
