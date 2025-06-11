@@ -1,6 +1,6 @@
 [project]
 name = "scrapy-curl-cffi"
-version = "0.1.0"
+version = "0.2.0"
 description = "Scrapy integration with curl_cffi (curl-impersonate)."
 readme = "README.md"
 authors = [
