@@ -27,6 +27,10 @@ def to_curl_cffi_request_kwargs(scrapy_request: scrapy.http.Request) -> dict[str
     if proxy_auth_header is not None:
         request_kwargs["proxy_auth"] = parse_basic_auth_header(proxy_auth_header)
 
+    bind_address = scrapy_request.meta.get("bindaddress")
+    if bind_address is not None:
+        request_kwargs["interface"] = bind_address
+
     timeout = scrapy_request.meta.get("download_timeout")
     if timeout is not None:
         request_kwargs["timeout"] = timeout
