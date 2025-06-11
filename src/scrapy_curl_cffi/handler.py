@@ -1,5 +1,4 @@
 import logging
-from http.cookiejar import Cookie, CookieJar
 
 import curl_cffi
 from scrapy import Spider
@@ -50,10 +49,8 @@ class CurlCffiDownloadHandler(HTTPDownloadHandler):
     ) -> curl_cffi.AsyncSession:
         return curl_cffi.AsyncSession(
             max_clients=max_clients,
-            cookies=_DummyCookieJar(),
-            trust_env=False,
-            allow_redirects=False,
             verify=verify,
+            trust_env=False,
         )
 
     def close(self) -> Deferred[None]:
@@ -62,8 +59,3 @@ class CurlCffiDownloadHandler(HTTPDownloadHandler):
             close_session_dfd = deferred_from_coro(self._session.close())
             d.addBoth(lambda _: close_session_dfd)
         return d
-
-
-class _DummyCookieJar(CookieJar):
-    def set_cookie(self, cookie: Cookie) -> None:
-        pass

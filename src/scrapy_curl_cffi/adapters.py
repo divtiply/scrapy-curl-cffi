@@ -17,8 +17,9 @@ def to_curl_cffi_request_kwargs(scrapy_request: scrapy.http.Request) -> dict[str
         "url": scrapy_request.url,
         "data": scrapy_request.body,
         "headers": headers,
-        "allow_redirects": False,  # disable curl-side redirection
-        "accept_encoding": None,  # disable curl-side decompression
+        "allow_redirects": False,  # disable curl-side redirection handling
+        "accept_encoding": None,  # disable curl-side content decompression
+        "discard_cookies": True,  # disable curl-side cookies handling
     }
 
     if proxy := scrapy_request.meta.get("proxy"):
