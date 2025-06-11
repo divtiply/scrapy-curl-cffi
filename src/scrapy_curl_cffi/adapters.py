@@ -9,30 +9,27 @@ from .utils import parse_basic_auth_header
 
 
 def to_curl_cffi_request_kwargs(scrapy_request: scrapy.http.Request) -> dict[str, Any]:
-    curl_cffi_headers = to_curl_cffi_headers(scrapy_request.headers)
-    proxy_auth_header = curl_cffi_headers.pop("Proxy-Authorization", None)
+    headers = to_curl_cffi_headers(scrapy_request.headers)
+    proxy_auth_header = headers.pop("Proxy-Authorization", None)
 
     request_kwargs = {
         "method": scrapy_request.method,
         "url": scrapy_request.url,
         "data": scrapy_request.body,
-        "headers": curl_cffi_headers,
+        "headers": headers,
         "allow_redirects": False,  # disable curl-side redirection
         "accept_encoding": None,  # disable curl-side decompression
     }
 
-    proxy = scrapy_request.meta.get("proxy")
-    if proxy is not None:
+    if proxy := scrapy_request.meta.get("proxy"):
         request_kwargs["proxy"] = proxy
-    if proxy_auth_header is not None:
+    if proxy_auth_header:
         request_kwargs["proxy_auth"] = parse_basic_auth_header(proxy_auth_header)
 
-    bind_address = scrapy_request.meta.get("bindaddress")
-    if bind_address is not None:
+    if bind_address := scrapy_request.meta.get("bindaddress"):
         request_kwargs["interface"] = bind_address
 
-    timeout = scrapy_request.meta.get("download_timeout")
-    if timeout is not None:
+    if timeout := scrapy_request.meta.get("download_timeout"):
         request_kwargs["timeout"] = timeout
 
     options = scrapy_request.meta.get("curl_cffi_options", {})
@@ -62,16 +59,16 @@ def to_curl_cffi_headers(scrapy_headers: scrapy.http.Headers) -> curl_cffi.Heade
 def to_scrapy_response(
     curl_cffi_response: curl_cffi.Response, scrapy_request: scrapy.http.Request
 ) -> scrapy.http.Response:
-    scrapy_headers = to_scrapy_headers(curl_cffi_response.headers)
+    headers = to_scrapy_headers(curl_cffi_response.headers)
     response_class = responsetypes.from_args(
-        headers=scrapy_headers,
+        headers=headers,
         url=curl_cffi_response.url,
         body=curl_cffi_response.content,
     )
     response = response_class(
         url=curl_cffi_response.url,
         status=curl_cffi_response.status_code,
-        headers=scrapy_headers,
+        headers=headers,
         body=curl_cffi_response.content,
         flags=["curl_cffi"],
         request=scrapy_request,
