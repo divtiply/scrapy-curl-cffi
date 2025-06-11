@@ -69,6 +69,12 @@ class FingerprintsSpider(scrapy.Spider):
         yield response.json()
 ```
 
+## curl_cffi interop
+
+`scrapy-curl-cffi` strives to adhere to established Scrapy conventions, ensuring
+that most Scrapy settings, spider attributes, request/response attributes and
+meta keys configure the crawler's behavior in an expected manner.
+
 ## Similar projects
 
 - [scrapy-impersonate](https://github.com/jxlil/scrapy-impersonate)
