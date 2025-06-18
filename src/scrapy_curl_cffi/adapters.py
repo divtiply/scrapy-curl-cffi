@@ -1,5 +1,5 @@
 from ipaddress import ip_address
-from typing import Any
+from typing import TypedDict, cast
 
 import curl_cffi
 import scrapy.http
@@ -8,12 +8,37 @@ from scrapy.responsetypes import responsetypes
 from .utils import parse_basic_auth_header
 
 
-def to_curl_cffi_request_kwargs(scrapy_request: scrapy.http.Request) -> dict[str, Any]:
+class CurlCffiOptions(TypedDict, total=False):
+    impersonate: curl_cffi.requests.impersonate.BrowserTypeLiteral
+    ja3: str
+    akamai: str
+    extra_fp: (
+        curl_cffi.requests.impersonate.ExtraFingerprints
+        | curl_cffi.requests.impersonate.ExtraFpDict
+    )
+    default_headers: bool
+    verify: bool
+
+
+class _CurlCffiRequestParamsBase(TypedDict, total=True):
+    method: curl_cffi.requests.session.HttpMethod
+    url: str
+
+
+class _CurlCffiRequestParams(
+    _CurlCffiRequestParamsBase, curl_cffi.requests.session.RequestParams
+):
+    pass
+
+
+def to_curl_cffi_request_params(
+    scrapy_request: scrapy.http.Request,
+) -> _CurlCffiRequestParams:
     headers = to_curl_cffi_headers(scrapy_request.headers)
     proxy_auth_header = headers.pop("Proxy-Authorization", None)
 
-    request_kwargs = {
-        "method": scrapy_request.method,
+    request_params: _CurlCffiRequestParams = {
+        "method": cast("curl_cffi.requests.session.HttpMethod", scrapy_request.method),
         "url": scrapy_request.url,
         "data": scrapy_request.body,
         "headers": headers,
@@ -23,34 +48,25 @@ def to_curl_cffi_request_kwargs(scrapy_request: scrapy.http.Request) -> dict[str
     }
 
     if proxy := scrapy_request.meta.get("proxy"):
-        request_kwargs["proxy"] = proxy
+        request_params["proxy"] = proxy
     if proxy_auth_header:
-        request_kwargs["proxy_auth"] = parse_basic_auth_header(proxy_auth_header)
+        request_params["proxy_auth"] = parse_basic_auth_header(proxy_auth_header)
 
     if bind_address := scrapy_request.meta.get("bindaddress"):
-        request_kwargs["interface"] = bind_address
+        request_params["interface"] = bind_address
 
     if timeout := scrapy_request.meta.get("download_timeout"):
-        request_kwargs["timeout"] = timeout
+        request_params["timeout"] = timeout
 
-    options = scrapy_request.meta.get("curl_cffi_options", {})
-    supported_keys = {
-        "impersonate",
-        "default_headers",
-        "ja3",
-        "akamai",
-        "extra_fp",
-        "verify",
-    }
+    options: CurlCffiOptions = scrapy_request.meta.get("curl_cffi_options", {})
+    supported_keys = CurlCffiOptions.__annotations__.keys()
     unsupported_keys = options.keys() - supported_keys
     if unsupported_keys:
         msg = f"Unsupported curl_cffi_options keys: {', '.join(unsupported_keys)}"
         raise ValueError(msg)
-    request_kwargs.update(
-        {key: options[key] for key in supported_keys & options.keys()}
-    )
+    request_params.update(**options)
 
-    return request_kwargs
+    return request_params
 
 
 def to_curl_cffi_headers(scrapy_headers: scrapy.http.Headers) -> curl_cffi.Headers:

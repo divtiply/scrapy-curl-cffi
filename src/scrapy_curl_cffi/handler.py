@@ -10,7 +10,7 @@ from scrapy.utils.defer import deferred_from_coro
 from scrapy.utils.reactor import is_asyncio_reactor_installed
 from twisted.internet.defer import Deferred
 
-from .adapters import to_curl_cffi_request_kwargs, to_scrapy_response
+from .adapters import to_curl_cffi_request_params, to_scrapy_response
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +34,12 @@ class CurlCffiDownloadHandler(HTTPDownloadHandler):
         return super().download_request(request, spider)
 
     async def _download_request(self, request: Request, spider: Spider) -> Response:  # noqa: ARG002
-        curl_cffi_request_kwargs = to_curl_cffi_request_kwargs(request)
+        curl_cffi_request_params = to_curl_cffi_request_params(request)
         if self._session:
-            curl_cffi_response = await self._session.request(**curl_cffi_request_kwargs)
+            curl_cffi_response = await self._session.request(**curl_cffi_request_params)
         else:
             async with self._create_session() as session:
-                curl_cffi_response = await session.request(**curl_cffi_request_kwargs)
+                curl_cffi_response = await session.request(**curl_cffi_request_params)
         return to_scrapy_response(curl_cffi_response, request)
 
     def _create_session(
