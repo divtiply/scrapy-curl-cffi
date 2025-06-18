@@ -42,14 +42,14 @@ To download a [`scrapy.Request`][4] with `curl_cffi`, add the
 `curl_cffi_options` special key to the [`Request.meta`][5] attribute. The value
 should be a dict with any of the following options:
 
-- `impersonate` (`str`) - which browser version to impersonate
-- `default_headers` (`bool`) - whether to set default browser headers when
-  impersonating (default: `True`)
-- `ja3` (`str`) - ja3 string to impersonate
-- `akamai` (`str`) - akamai string to impersonate
-- `extra_fp` (`str`) - extra fingerprints options, in complement to ja3 and
-  akamai strings
-- `verify` (`bool`) - whether to verify https certs (default: `False`)
+- `impersonate` - which browser version to impersonate
+- `ja3` - ja3 string to impersonate
+- `akamai` - akamai string to impersonate
+- `extra_fp` - extra fingerprints options, in complement to ja3 and akamai
+  strings
+- `default_headers` - whether to set default browser headers when impersonating,
+  defaults to `True`
+- `verify` - whether to verify https certs, defaults to `False`
 
 See the [curl_cffi documentation][6] for more info on these options.
 
@@ -85,4 +85,4 @@ meta keys configure the crawler's behavior in an expected manner.
 [3]: https://github.com/lexiforest/curl-impersonate
 [4]: https://docs.scrapy.org/en/latest/topics/request-response.html#request-objects
 [5]: https://docs.scrapy.org/en/latest/topics/request-response.html#scrapy.Request.meta
-[6]: https://curl-cffi.readthedocs.io
+[6]: https://curl-cffi.readthedocs.io/en/latest/api.html#requests-like-api
