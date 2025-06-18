@@ -6,7 +6,7 @@ from scrapy import Spider
 
 class BasicOptionsSpider(Spider):
     name = "basic-options"
-    start_urls = ["https://browserleaks.com/ip"]
+    start_urls = ["https://tls.browserleaks.com/json"]
     curl_cffi_options = {"impersonate": "chrome"}
 
     custom_settings = {
