@@ -1,6 +1,6 @@
-import inspect
 import logging
 
+import scrapy
 import curl_cffi
 from scrapy import Spider
 from scrapy.core.downloader.handlers.http import HTTPDownloadHandler
@@ -20,11 +20,10 @@ class CurlCffiDownloadHandler(HTTPDownloadHandler):
     def __init__(self, settings: BaseSettings, crawler: Crawler) -> None:
         # Scrapy < 2.15: HTTPDownloadHandler.__init__(settings, crawler)
         # Scrapy >= 2.15: HTTP11DownloadHandler.__init__(crawler)
-        parent_init_params = inspect.signature(super().__init__).parameters
-        if "settings" in parent_init_params:
-            super().__init__(settings, crawler)
-        else:
+        if scrapy.version_info >= (2, 15):
             super().__init__(crawler)
+        else:
+            super().__init__(settings, crawler)
         if not is_asyncio_reactor_installed():
             msg = (
                 f"{self.__class__.__qualname__} requires the asyncio Twisted "
