@@ -1,3 +1,4 @@
+import inspect
 import logging
 
 import curl_cffi
@@ -17,7 +18,13 @@ logger = logging.getLogger(__name__)
 
 class CurlCffiDownloadHandler(HTTPDownloadHandler):
     def __init__(self, settings: BaseSettings, crawler: Crawler) -> None:
-        super().__init__(settings, crawler)
+        # Scrapy < 2.15: HTTPDownloadHandler.__init__(settings, crawler)
+        # Scrapy >= 2.15: HTTP11DownloadHandler.__init__(crawler)
+        parent_init_params = inspect.signature(super().__init__).parameters
+        if "settings" in parent_init_params:
+            super().__init__(settings, crawler)
+        else:
+            super().__init__(crawler)
         if not is_asyncio_reactor_installed():
             msg = (
                 f"{self.__class__.__qualname__} requires the asyncio Twisted "
@@ -27,6 +34,10 @@ class CurlCffiDownloadHandler(HTTPDownloadHandler):
             )
             raise ValueError(msg)
         self._session: curl_cffi.AsyncSession | None = None
+
+    @classmethod
+    def from_crawler(cls, crawler: Crawler) -> "CurlCffiDownloadHandler":
+        return cls(crawler.settings, crawler)
 
     def download_request(self, request: Request, spider: Spider) -> Deferred[Response]:
         if "curl_cffi_options" in request.meta:
