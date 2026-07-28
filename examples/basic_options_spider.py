@@ -11,8 +11,8 @@ class BasicOptionsSpider(Spider):
 
     custom_settings = {
         "DOWNLOAD_HANDLERS": {
-            "http": "scrapy_curl_cffi.handler.CurlCffiDownloadHandler",
-            "https": "scrapy_curl_cffi.handler.CurlCffiDownloadHandler",
+            "http": "scrapy_curl_cffi.handlers.CurlCffiDownloadHandler",
+            "https": "scrapy_curl_cffi.handlers.CurlCffiDownloadHandler",
         },
         "DOWNLOADER_MIDDLEWARES": {
             "scrapy_curl_cffi.middlewares.CurlCffiMiddleware": 200,
