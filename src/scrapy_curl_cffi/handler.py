@@ -7,7 +7,6 @@ from scrapy import Spider
 from scrapy.core.downloader.handlers.http import HTTPDownloadHandler
 from scrapy.crawler import Crawler
 from scrapy.http import Request, Response
-from scrapy.settings import BaseSettings
 from scrapy.utils.defer import deferred_from_coro
 from scrapy.utils.reactor import is_asyncio_reactor_installed
 from twisted.internet.defer import Deferred
@@ -18,13 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 class CurlCffiDownloadHandler(HTTPDownloadHandler):
-    def __init__(self, settings: BaseSettings, crawler: Crawler) -> None:
+    def __init__(self, crawler: Crawler) -> None:
         # Scrapy < 2.15: HTTPDownloadHandler.__init__(settings, crawler)
         # Scrapy >= 2.15: HTTP11DownloadHandler.__init__(crawler)
         if scrapy.version_info >= (2, 15):
             super().__init__(crawler)
         else:
-            super().__init__(settings, crawler)
+            super().__init__(crawler.settings, crawler)
         if not is_asyncio_reactor_installed():
             msg = (
                 f"{self.__class__.__qualname__} requires the asyncio Twisted "
@@ -37,7 +36,7 @@ class CurlCffiDownloadHandler(HTTPDownloadHandler):
 
     @classmethod
     def from_crawler(cls, crawler: Crawler) -> Self:
-        return cls(crawler.settings, crawler)
+        return cls(crawler)
 
     def download_request(self, request: Request, spider: Spider) -> Deferred[Response]:
         if "curl_cffi_options" in request.meta:
