@@ -5,8 +5,8 @@ try:
 except ImportError:
     from typing_extensions import Self
 
-import scrapy
 import curl_cffi
+import scrapy
 from scrapy import Spider
 from scrapy.core.downloader.handlers.http import HTTPDownloadHandler
 from scrapy.crawler import Crawler
