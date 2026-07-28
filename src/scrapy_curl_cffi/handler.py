@@ -1,4 +1,5 @@
 import logging
+from typing import Self
 
 import scrapy
 import curl_cffi
@@ -35,7 +36,7 @@ class CurlCffiDownloadHandler(HTTPDownloadHandler):
         self._session: curl_cffi.AsyncSession | None = None
 
     @classmethod
-    def from_crawler(cls, crawler: Crawler) -> "CurlCffiDownloadHandler":
+    def from_crawler(cls, crawler: Crawler) -> Self:
         return cls(crawler.settings, crawler)
 
     def download_request(self, request: Request, spider: Spider) -> Deferred[Response]:
