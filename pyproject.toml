@@ -10,6 +10,7 @@ requires-python = ">=3.10"
 dependencies = [
     "curl-cffi>=0.11.3",
     "scrapy>2.10",
+    "typing-extensions>=4.16.0 ; python_full_version < '3.11'",
 ]
 
 [project.urls]

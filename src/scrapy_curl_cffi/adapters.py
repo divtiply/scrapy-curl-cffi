@@ -93,7 +93,7 @@ def to_scrapy_response(
         ip_address=ip_address(curl_cffi_response.primary_ip),
         # protocol=
     )
-    response.meta["download_latency"] = curl_cffi_response.elapsed
+    response.meta["download_latency"] = curl_cffi_response.elapsed.total_seconds()
     return response
 
 
