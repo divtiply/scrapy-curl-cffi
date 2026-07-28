@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 class CurlCffiDownloadHandler(HTTPDownloadHandler):
     def __init__(self, crawler: Crawler) -> None:
-        # Scrapy < 2.15: HTTPDownloadHandler.__init__(settings, crawler)
-        # Scrapy >= 2.15: HTTP11DownloadHandler.__init__(crawler)
-        if scrapy.version_info >= (2, 15):
+        # Scrapy < 2.14: HTTP11DownloadHandler.__init__(settings, crawler)
+        # Scrapy >= 2.14: HTTP11DownloadHandler.__init__(crawler)
+        if scrapy.version_info >= (2, 14):
             super().__init__(crawler)
         else:
             super().__init__(crawler.settings, crawler)
