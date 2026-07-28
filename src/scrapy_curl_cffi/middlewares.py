@@ -52,7 +52,7 @@ class _CurlCffiMixin:
         def process_request(  # pyright: ignore[reportRedeclaration]
             self, request: Request, spider: Spider
         ) -> Request | Response | None:
-            if self._should_add_curl_cffi_default_headers(request):
+            if self._will_use_curl_cffi_default_headers(request):
                 return None
             return super().process_request(request, spider)  # pyright: ignore[reportAttributeAccessIssue]
 
@@ -63,11 +63,11 @@ class _CurlCffiMixin:
             request: Request,
             spider: Spider | None = None,  # noqa: ARG002
         ) -> Request | Response | None:
-            if self._should_add_curl_cffi_default_headers(request):
+            if self._will_use_curl_cffi_default_headers(request):
                 return None
             return super().process_request(request)  # pyright: ignore[reportAttributeAccessIssue]
 
-    def _should_add_curl_cffi_default_headers(self, request: Request) -> bool:
+    def _will_use_curl_cffi_default_headers(self, request: Request) -> bool:
         return (  # _
             "curl_cffi_options" in request.meta
             and request.meta["curl_cffi_options"].get("default_headers", True)
