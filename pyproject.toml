@@ -1,6 +1,6 @@
 [project]
 name = "scrapy-curl-cffi"
-version = "0.2.0"
+version = "0.3.0"
 description = "Scrapy integration with curl_cffi (curl-impersonate)."
 readme = "README.md"
 authors = [
@@ -50,4 +50,5 @@ ignore = [
 
 [tool.commitizen]
 tag_format = "v$version"
+version_files = ["src/scrapy_curl_cffi/__init__.py"]
 version_provider = "uv"
