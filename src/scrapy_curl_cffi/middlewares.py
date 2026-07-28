@@ -18,7 +18,7 @@ from scrapy.downloadermiddlewares.useragent import (
 from scrapy.http import Response
 from scrapy.utils.python import without_none_values
 
-from .adapters import CurlCffiOptions
+from .converters import CurlCffiOptions
 
 
 class CurlCffiMiddleware:

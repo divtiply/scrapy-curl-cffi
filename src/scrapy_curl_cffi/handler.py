@@ -24,7 +24,7 @@ from scrapy.utils.defer import deferred_from_coro
 from scrapy.utils.reactor import is_asyncio_reactor_installed
 from twisted.internet.defer import Deferred
 
-from .adapters import to_curl_cffi_request_params, to_scrapy_response
+from .converters import to_curl_cffi_request_params, to_scrapy_response
 
 logger = logging.getLogger(__name__)
 
