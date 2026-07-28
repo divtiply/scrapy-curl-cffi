@@ -93,7 +93,11 @@ def to_scrapy_response(
         ip_address=ip_address(curl_cffi_response.primary_ip),
         # protocol=
     )
-    response.meta["download_latency"] = curl_cffi_response.elapsed
+    # curl_cffi.elapsed is a timedelta; Scrapy expects a float (seconds)
+    elapsed = curl_cffi_response.elapsed
+    response.meta["download_latency"] = (
+        elapsed.total_seconds() if hasattr(elapsed, "total_seconds") else float(elapsed)
+    )
     return response
 
 
