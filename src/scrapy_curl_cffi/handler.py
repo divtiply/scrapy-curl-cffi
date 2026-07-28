@@ -16,7 +16,7 @@ except ImportError:
 
 from scrapy import Spider
 from scrapy import version_info as scrapy_version_info
-from scrapy.core.downloader.handlers.http import HTTPDownloadHandler
+from scrapy.core.downloader.handlers.http11 import HTTP11DownloadHandler
 from scrapy.crawler import Crawler
 from scrapy.exceptions import NotConfigured
 from scrapy.http import Request, Response
@@ -29,7 +29,7 @@ from .adapters import to_curl_cffi_request_params, to_scrapy_response
 logger = logging.getLogger(__name__)
 
 
-class CurlCffiDownloadHandler(HTTPDownloadHandler):
+class CurlCffiDownloadHandler(HTTP11DownloadHandler):
     if scrapy_version_info < (2, 14):
 
         def __init__(self, crawler: Crawler) -> None:
