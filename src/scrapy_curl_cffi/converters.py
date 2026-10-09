@@ -115,8 +115,6 @@ def to_scrapy_headers(curl_cffi_headers: curl_cffi.Headers) -> scrapy.http.Heade
 
 def to_scrapy_download_error(  # noqa: PLR0911
     exc: curl_cffi.requests.exceptions.RequestException,
-    url: str,
-    timeout: object | None,
 ) -> Exception | None:
     """Map a curl_cffi request exception onto the matching Scrapy download error.
 
@@ -126,11 +124,7 @@ def to_scrapy_download_error(  # noqa: PLR0911
     if scrapy_version_info < (2, 13):
         return None
     if isinstance(exc, curl_cffi.requests.exceptions.Timeout):
-        if timeout is not None:
-            msg = f"Getting {url} took longer than {timeout} seconds."
-        else:
-            msg = f"Getting {url} timed out."
-        return scrapy.exceptions.DownloadTimeoutError(msg)
+        return scrapy.exceptions.DownloadTimeoutError(str(exc))
     if isinstance(exc, curl_cffi.requests.exceptions.InvalidSchema):
         return scrapy.exceptions.UnsupportedURLSchemeError(str(exc))
     if isinstance(exc, curl_cffi.requests.exceptions.DNSError):

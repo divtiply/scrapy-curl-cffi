@@ -173,9 +173,7 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
                 **curl_cffi_request_params
             )
         except curl_cffi.requests.exceptions.RequestException as e:
-            error = to_scrapy_download_error(
-                e, request.url, curl_cffi_request_params.get("timeout")
-            )
+            error = to_scrapy_download_error(e)
             if error is not None:
                 raise error from e
             raise

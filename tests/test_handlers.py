@@ -48,8 +48,8 @@ def _make_handler(
     return CurlCffiDownloadHandler(crawler)
 
 
-def _make_request(meta: dict | None = None) -> Request:
-    return Request("http://example.com", meta={"curl_cffi_options": {}, **(meta or {})})
+def _make_request() -> Request:
+    return Request("http://example.com", meta={"curl_cffi_options": {}})
 
 
 async def test_session_created_lazily_and_reused(
@@ -153,12 +153,11 @@ async def _assert_mapped(
     monkeypatch: pytest.MonkeyPatch,
     exc: Exception,
     expected: type[Exception],
-    meta: dict | None = None,
 ) -> None:
     handler = _make_handler(monkeypatch)
     handler._session = _make_failing_session(exc)  # pyright: ignore[reportAttributeAccessIssue]
     with pytest.raises(expected):
-        await handler._download_request(_make_request(meta))
+        await handler._download_request(_make_request())
 
 
 async def test_timeout_mapped_to_download_timeout_error(
@@ -168,7 +167,6 @@ async def test_timeout_mapped_to_download_timeout_error(
         monkeypatch,
         curl_cffi.requests.exceptions.Timeout("timed out"),
         DownloadTimeoutError,
-        meta={"download_timeout": 5},
     )
 
 
