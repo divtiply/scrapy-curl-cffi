@@ -8,9 +8,11 @@ from scrapy.exceptions import (
     DownloadTimeoutError,
     UnsupportedURLSchemeError,
 )
+from scrapy.settings import BaseSettings
 
 from scrapy_curl_cffi.converters import (
     to_curl_cffi_request_params,
+    to_curl_cffi_ssl_version,
     to_scrapy_download_error,
     to_scrapy_response,
 )
@@ -30,6 +32,34 @@ def test_unsupported_option_key_is_rejected() -> None:
     request = _make_request({"curl_cffi_options": {"bogus": True}})
     with pytest.raises(ValueError, match="bogus"):
         to_curl_cffi_request_params(request)
+
+
+def test_ssl_version_composed_from_min_setting() -> None:
+    settings = BaseSettings({"DOWNLOAD_TLS_MIN_VERSION": "TLSv1.2"})
+    assert to_curl_cffi_ssl_version(settings) == (
+        curl_cffi.const.CurlSslVersion.TLSv1_2
+        | curl_cffi.const.CurlSslVersion.MAX_DEFAULT
+    )
+
+
+def test_ssl_version_composed_from_max_setting() -> None:
+    settings = BaseSettings({"DOWNLOAD_TLS_MAX_VERSION": "TLSv1.2"})
+    assert to_curl_cffi_ssl_version(settings) == (
+        curl_cffi.const.CurlSslVersion.DEFAULT
+        | (curl_cffi.const.CurlSslVersion.TLSv1_2 << 16)
+    )
+
+
+def test_ssl_version_none_without_tls_settings() -> None:
+    assert to_curl_cffi_ssl_version(BaseSettings()) is None
+
+
+def test_ssl_version_none_when_helper_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("scrapy_curl_cffi.converters._get_tls_version_limits", None)
+    settings = BaseSettings({"DOWNLOAD_TLS_MIN_VERSION": "TLSv1.2"})
+    assert to_curl_cffi_ssl_version(settings) is None
 
 
 def test_timeout_maps_to_download_timeout_error() -> None:

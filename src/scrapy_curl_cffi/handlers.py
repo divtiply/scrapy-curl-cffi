@@ -24,12 +24,12 @@ from scrapy.utils.reactor import is_asyncio_reactor_installed
 from twisted.internet.defer import Deferred
 
 from .converters import (
-    _TLS_VERSION_MAP,
     to_curl_cffi_request_params,
+    to_curl_cffi_ssl_version,
     to_scrapy_download_error,
     to_scrapy_response,
 )
-from .utils import _get_tls_version_limits, normalize_bind_address
+from .utils import normalize_bind_address
 
 logger = logging.getLogger(__name__)
 
@@ -118,24 +118,8 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
                 )
             else:
                 params["interface"] = normalized[0]
-        if _get_tls_version_limits is not None:
-            tls_min, tls_max = _get_tls_version_limits(
-                settings, _TLS_VERSION_MAP.__getitem__
-            )
-            if tls_min is not None or tls_max is not None:
-                min_part = (
-                    tls_min
-                    if tls_min is not None
-                    else curl_cffi.const.CurlSslVersion.DEFAULT
-                )
-                max_part = (
-                    (tls_max << 16)
-                    if tls_max is not None
-                    else curl_cffi.const.CurlSslVersion.MAX_DEFAULT
-                )
-                params["curl_options"] = {
-                    curl_cffi.const.CurlOpt.SSLVERSION: min_part | max_part
-                }
+        if (ssl_version := to_curl_cffi_ssl_version(settings)) is not None:
+            params["curl_options"] = {curl_cffi.const.CurlOpt.SSLVERSION: ssl_version}
         return settings.getint("CURL_CFFI_MAX_CLIENTS", 10), params
 
     async def _download_request(self, request: Request) -> Response:
