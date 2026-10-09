@@ -3,6 +3,13 @@ from urllib.parse import unquote
 
 from scrapy.utils.python import to_bytes
 
+try:
+    from scrapy.utils._download_handlers import normalize_bind_address
+    from scrapy.utils.ssl import _get_tls_version_limits
+except ImportError:  # not available in older Scrapy
+    normalize_bind_address = None
+    _get_tls_version_limits = None
+
 
 def parse_basic_auth_header(header_value: str | bytes) -> tuple[str, str]:
     parts = to_bytes(header_value).split(b" ")

@@ -32,29 +32,14 @@ from scrapy.utils.reactor import is_asyncio_reactor_installed
 from twisted.internet.defer import Deferred
 
 from .converters import (
+    _TLS_VERSION_MAP,
     to_curl_cffi_request_params,
     to_scrapy_download_error,
     to_scrapy_response,
 )
+from .utils import _get_tls_version_limits, normalize_bind_address
 
 logger = logging.getLogger(__name__)
-
-try:
-    from scrapy.utils._download_handlers import normalize_bind_address
-    from scrapy.utils.ssl import _get_tls_version_limits
-except ImportError:  # not available in older Scrapy
-    normalize_bind_address = None
-    _get_tls_version_limits = None
-
-if curl_cffi is not None:
-    _TLS_VERSION_MAP: dict[str, int] = {
-        "TLSv1.0": curl_cffi.const.CurlSslVersion.TLSv1_0,
-        "TLSv1.1": curl_cffi.const.CurlSslVersion.TLSv1_1,
-        "TLSv1.2": curl_cffi.const.CurlSslVersion.TLSv1_2,
-        "TLSv1.3": curl_cffi.const.CurlSslVersion.TLSv1_3,
-    }
-else:
-    _TLS_VERSION_MAP = {}
 
 
 class CurlCffiDownloadHandler(HTTP11DownloadHandler):

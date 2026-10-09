@@ -27,6 +27,13 @@ _HTTP_VERSION_MAP: dict[int, str] = {
     curl_cffi.const.CurlHttpVersion.V3: "HTTP/3",
 }
 
+_TLS_VERSION_MAP: dict[str, int] = {
+    "TLSv1.0": curl_cffi.const.CurlSslVersion.TLSv1_0,
+    "TLSv1.1": curl_cffi.const.CurlSslVersion.TLSv1_1,
+    "TLSv1.2": curl_cffi.const.CurlSslVersion.TLSv1_2,
+    "TLSv1.3": curl_cffi.const.CurlSslVersion.TLSv1_3,
+}
+
 
 class CurlCffiOptions(TypedDict, total=False):
     impersonate: curl_cffi.requests.impersonate.BrowserTypeLiteral
