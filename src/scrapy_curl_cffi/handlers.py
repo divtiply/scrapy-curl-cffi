@@ -1,19 +1,11 @@
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
-if TYPE_CHECKING:
-    import curl_cffi
-    import curl_cffi.const
-    import curl_cffi.requests.exceptions
-    import curl_cffi.requests.session
-    import curl_cffi.requests.utils
-else:
-    try:
-        import curl_cffi
-        import curl_cffi.const
-        import curl_cffi.requests.exceptions
-    except ImportError:
-        curl_cffi = None
+import curl_cffi
+import curl_cffi.const
+import curl_cffi.requests.exceptions
+import curl_cffi.requests.session
+import curl_cffi.requests.utils
 
 try:
     from typing import Self
@@ -92,9 +84,6 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
         )
 
     def _check_requirements(self) -> None:
-        if curl_cffi is None:
-            msg = f"{self.__class__.__qualname__} requires curl_cffi to be installed."
-            raise NotConfigured(msg)
         if not is_asyncio_reactor_installed():
             msg = (
                 f"{self.__class__.__qualname__} requires the asyncio Twisted "
