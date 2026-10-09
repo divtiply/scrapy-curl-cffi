@@ -119,7 +119,7 @@ def test_other_request_exception_maps_to_download_failed_error() -> None:
 def test_returns_none_when_download_errors_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("scrapy_curl_cffi.converters.DownloadFailedError", None)
+    monkeypatch.setattr("scrapy_curl_cffi.converters.scrapy_version_info", (2, 12))
     error = to_scrapy_download_error(
         curl_cffi.requests.exceptions.Timeout("timed out"), "http://example.com", 5
     )

@@ -5,25 +5,12 @@ import curl_cffi
 import curl_cffi.const
 import curl_cffi.requests.exceptions
 import curl_cffi.requests.utils
+import scrapy.exceptions
 import scrapy.http
+from scrapy import version_info as scrapy_version_info
 from scrapy.responsetypes import responsetypes
 
 from .utils import parse_basic_auth_header
-
-try:
-    from scrapy.exceptions import (
-        CannotResolveHostError,
-        DownloadConnectionRefusedError,
-        DownloadFailedError,
-        DownloadTimeoutError,
-        UnsupportedURLSchemeError,
-    )
-except ImportError:  # Scrapy < 2.13
-    CannotResolveHostError = None
-    DownloadConnectionRefusedError = None
-    DownloadFailedError = None
-    DownloadTimeoutError = None
-    UnsupportedURLSchemeError = None
 
 _DATALOSS_CODES = {
     curl_cffi.const.CurlECode.SEND_ERROR,
@@ -136,24 +123,18 @@ def to_scrapy_download_error(  # noqa: PLR0911
     Returns ``None`` on Scrapy versions without the download error types
     (< 2.13), where no mapping is possible.
     """
-    if (
-        DownloadFailedError is None
-        or DownloadTimeoutError is None
-        or UnsupportedURLSchemeError is None
-        or CannotResolveHostError is None
-        or DownloadConnectionRefusedError is None
-    ):
+    if scrapy_version_info < (2, 13):
         return None
     if isinstance(exc, curl_cffi.requests.exceptions.Timeout):
         if timeout is not None:
             msg = f"Getting {url} took longer than {timeout} seconds."
         else:
             msg = f"Getting {url} timed out."
-        return DownloadTimeoutError(msg)
+        return scrapy.exceptions.DownloadTimeoutError(msg)
     if isinstance(exc, curl_cffi.requests.exceptions.InvalidSchema):
-        return UnsupportedURLSchemeError(str(exc))
+        return scrapy.exceptions.UnsupportedURLSchemeError(str(exc))
     if isinstance(exc, curl_cffi.requests.exceptions.DNSError):
-        return CannotResolveHostError(str(exc))
+        return scrapy.exceptions.CannotResolveHostError(str(exc))
     if isinstance(
         exc,
         (
@@ -161,9 +142,9 @@ def to_scrapy_download_error(  # noqa: PLR0911
             curl_cffi.requests.exceptions.ProxyError,
         ),
     ):
-        return DownloadConnectionRefusedError(str(exc))
+        return scrapy.exceptions.DownloadConnectionRefusedError(str(exc))
     if isinstance(exc, curl_cffi.requests.exceptions.ConnectionError):
         if exc.code in _DATALOSS_CODES:
-            return DownloadFailedError(str(exc))
-        return DownloadConnectionRefusedError(str(exc))
-    return DownloadFailedError(str(exc))
+            return scrapy.exceptions.DownloadFailedError(str(exc))
+        return scrapy.exceptions.DownloadConnectionRefusedError(str(exc))
+    return scrapy.exceptions.DownloadFailedError(str(exc))
