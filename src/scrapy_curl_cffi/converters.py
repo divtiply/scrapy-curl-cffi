@@ -112,7 +112,7 @@ def to_scrapy_response(
         request=scrapy_request,
         # certificate=
         ip_address=ip_address(curl_cffi_response.primary_ip),
-        protocol=_HTTP_VERSION_MAP.get(curl_cffi_response.http_version, ""),
+        protocol=_HTTP_VERSION_MAP.get(curl_cffi_response.http_version),
     )
     response.meta["download_latency"] = curl_cffi_response.elapsed.total_seconds()
     return response

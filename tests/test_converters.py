@@ -127,8 +127,8 @@ def test_response_protocol_from_http_version(
     assert response.protocol == protocol
 
 
-def test_response_protocol_empty_when_http_version_unknown() -> None:
+def test_response_protocol_none_when_http_version_unknown() -> None:
     curl_cffi_response = _make_curl_cffi_response()
     assert curl_cffi_response.http_version == 0
     response = to_scrapy_response(curl_cffi_response, _make_request())
-    assert response.protocol == ""
+    assert response.protocol is None
