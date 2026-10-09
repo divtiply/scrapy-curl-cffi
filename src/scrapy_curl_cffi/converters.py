@@ -18,6 +18,15 @@ _DATALOSS_CODES = {
     curl_cffi.const.CurlECode.WEIRD_SERVER_REPLY,
 }
 
+# keyed by the int libcurl reports via CURLINFO_HTTP_VERSION, whose values
+# match the CurlHttpVersion enum
+_HTTP_VERSION_MAP: dict[int, str] = {
+    curl_cffi.const.CurlHttpVersion.V1_0: "HTTP/1.0",
+    curl_cffi.const.CurlHttpVersion.V1_1: "HTTP/1.1",
+    curl_cffi.const.CurlHttpVersion.V2_0: "HTTP/2.0",
+    curl_cffi.const.CurlHttpVersion.V3: "HTTP/3",
+}
+
 
 class CurlCffiOptions(TypedDict, total=False):
     impersonate: curl_cffi.requests.impersonate.BrowserTypeLiteral
@@ -103,7 +112,7 @@ def to_scrapy_response(
         request=scrapy_request,
         # certificate=
         ip_address=ip_address(curl_cffi_response.primary_ip),
-        # protocol=
+        protocol=_HTTP_VERSION_MAP.get(curl_cffi_response.http_version, ""),
     )
     response.meta["download_latency"] = curl_cffi_response.elapsed.total_seconds()
     return response

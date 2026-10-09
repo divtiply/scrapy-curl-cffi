@@ -30,6 +30,7 @@ class FakeSession:
             content=b"ok",
             primary_ip="93.184.216.34",
             elapsed=timedelta(seconds=0.01),
+            http_version=curl_cffi.const.CurlHttpVersion.V1_1,
         )
 
     async def close(self) -> None:

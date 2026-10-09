@@ -12,6 +12,7 @@ from scrapy.exceptions import (
 from scrapy_curl_cffi.converters import (
     to_curl_cffi_request_params,
     to_scrapy_download_error,
+    to_scrapy_response,
 )
 
 
@@ -100,3 +101,34 @@ def test_returns_none_when_download_errors_unavailable(
     monkeypatch.setattr("scrapy_curl_cffi.converters.scrapy_version_info", (2, 12))
     error = to_scrapy_download_error(curl_cffi.requests.exceptions.Timeout("timed out"))
     assert error is None
+
+
+def _make_curl_cffi_response() -> curl_cffi.Response:
+    response = curl_cffi.Response()
+    response.primary_ip = "93.184.216.34"
+    return response
+
+
+@pytest.mark.parametrize(
+    ("http_version", "protocol"),
+    [
+        (curl_cffi.const.CurlHttpVersion.V1_0, "HTTP/1.0"),
+        (curl_cffi.const.CurlHttpVersion.V1_1, "HTTP/1.1"),
+        (curl_cffi.const.CurlHttpVersion.V2_0, "HTTP/2.0"),
+        (curl_cffi.const.CurlHttpVersion.V3, "HTTP/3"),
+    ],
+)
+def test_response_protocol_from_http_version(
+    http_version: curl_cffi.const.CurlHttpVersion, protocol: str
+) -> None:
+    curl_cffi_response = _make_curl_cffi_response()
+    curl_cffi_response.http_version = http_version
+    response = to_scrapy_response(curl_cffi_response, _make_request())
+    assert response.protocol == protocol
+
+
+def test_response_protocol_empty_when_http_version_unknown() -> None:
+    curl_cffi_response = _make_curl_cffi_response()
+    assert curl_cffi_response.http_version == 0
+    response = to_scrapy_response(curl_cffi_response, _make_request())
+    assert response.protocol == ""
