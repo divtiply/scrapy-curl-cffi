@@ -1,11 +1,17 @@
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     import curl_cffi
+    import curl_cffi.const
+    import curl_cffi.requests.exceptions
+    import curl_cffi.requests.session
+    import curl_cffi.requests.utils
 else:
     try:
         import curl_cffi
+        import curl_cffi.const
+        import curl_cffi.requests.exceptions
     except ImportError:
         curl_cffi = None
 
@@ -20,13 +26,35 @@ from scrapy.core.downloader.handlers.http11 import HTTP11DownloadHandler
 from scrapy.crawler import Crawler
 from scrapy.exceptions import NotConfigured
 from scrapy.http import Request, Response
+from scrapy.settings import BaseSettings
 from scrapy.utils.defer import deferred_from_coro
 from scrapy.utils.reactor import is_asyncio_reactor_installed
 from twisted.internet.defer import Deferred
 
-from .converters import to_curl_cffi_request_params, to_scrapy_response
+from .converters import (
+    to_curl_cffi_request_params,
+    to_scrapy_download_error,
+    to_scrapy_response,
+)
 
 logger = logging.getLogger(__name__)
+
+try:
+    from scrapy.utils._download_handlers import normalize_bind_address
+    from scrapy.utils.ssl import _get_tls_version_limits
+except ImportError:  # not available in older Scrapy
+    normalize_bind_address = None
+    _get_tls_version_limits = None
+
+if curl_cffi is not None:
+    _TLS_VERSION_MAP: dict[str, int] = {
+        "TLSv1.0": curl_cffi.const.CurlSslVersion.TLSv1_0,
+        "TLSv1.1": curl_cffi.const.CurlSslVersion.TLSv1_1,
+        "TLSv1.2": curl_cffi.const.CurlSslVersion.TLSv1_2,
+        "TLSv1.3": curl_cffi.const.CurlSslVersion.TLSv1_3,
+    }
+else:
+    _TLS_VERSION_MAP = {}
 
 
 class CurlCffiDownloadHandler(HTTP11DownloadHandler):
@@ -35,7 +63,7 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
         def __init__(self, crawler: Crawler) -> None:
             self._check_requirements()
             super().__init__(crawler.settings, crawler)  # pyright: ignore[reportCallIssue]
-            self._session: curl_cffi.AsyncSession | None = None
+            self._init_session(crawler)
 
         def download_request(  # pyright: ignore[reportRedeclaration, reportIncompatibleMethodOverride]
             self, request: Request, spider: Spider
@@ -56,7 +84,7 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
         def __init__(self, crawler: Crawler) -> None:
             self._check_requirements()
             super().__init__(crawler)
-            self._session: curl_cffi.AsyncSession | None = None
+            self._init_session(crawler)
 
         async def download_request(self, request: Request) -> Response:
             if "curl_cffi_options" in request.meta:
@@ -72,6 +100,12 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
     def from_crawler(cls, crawler: Crawler) -> Self:
         return cls(crawler)
 
+    def _init_session(self, crawler: Crawler) -> None:
+        self._session: curl_cffi.AsyncSession | None = None
+        self._max_clients, self._session_params = self._build_session_config(
+            crawler.settings
+        )
+
     def _check_requirements(self) -> None:
         if curl_cffi is None:
             msg = f"{self.__class__.__qualname__} requires curl_cffi to be installed."
@@ -85,20 +119,70 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
             )
             raise NotConfigured(msg)
 
+    def _build_session_config(
+        self, settings: BaseSettings
+    ) -> tuple[int, curl_cffi.requests.session.BaseSessionParams]:
+        params: curl_cffi.requests.session.BaseSessionParams = {
+            "verify": settings.getbool("DOWNLOAD_VERIFY_CERTIFICATES"),
+            "trust_env": False,
+        }
+        if (http_version := settings.get("CURL_CFFI_HTTP_VERSION")) is not None:
+            params["http_version"] = cast(
+                "curl_cffi.requests.utils.HttpVersionLiteral", http_version
+            )
+        if bind_address := settings.get("DOWNLOAD_BIND_ADDRESS"):
+            normalized = (
+                None
+                if normalize_bind_address is None
+                else normalize_bind_address(bind_address)
+            )
+            if normalized is None:
+                logger.warning(
+                    "DOWNLOAD_BIND_ADDRESS is not supported by this Scrapy "
+                    "version and is ignored by %s.",
+                    self.__class__.__qualname__,
+                )
+            else:
+                params["interface"] = normalized[0]
+        if _get_tls_version_limits is not None:
+            tls_min, tls_max = _get_tls_version_limits(
+                settings, _TLS_VERSION_MAP.__getitem__
+            )
+            if tls_min is not None or tls_max is not None:
+                min_part = (
+                    tls_min
+                    if tls_min is not None
+                    else curl_cffi.const.CurlSslVersion.DEFAULT
+                )
+                max_part = (
+                    (tls_max << 16)
+                    if tls_max is not None
+                    else curl_cffi.const.CurlSslVersion.MAX_DEFAULT
+                )
+                params["curl_options"] = {
+                    curl_cffi.const.CurlOpt.SSLVERSION: min_part | max_part
+                }
+        return settings.getint("CURL_CFFI_MAX_CLIENTS", 10), params
+
     async def _download_request(self, request: Request) -> Response:
         curl_cffi_request_params = to_curl_cffi_request_params(request)
-        if self._session:
-            curl_cffi_response = await self._session.request(**curl_cffi_request_params)
-        else:
-            async with self._create_session() as session:
-                curl_cffi_response = await session.request(**curl_cffi_request_params)
+        if self._session is None:
+            self._session = self._create_session()
+        try:
+            curl_cffi_response = await self._session.request(
+                **curl_cffi_request_params
+            )
+        except curl_cffi.requests.exceptions.RequestException as e:
+            error = to_scrapy_download_error(
+                e, request.url, curl_cffi_request_params.get("timeout")
+            )
+            if error is not None:
+                raise error from e
+            raise
         return to_scrapy_response(curl_cffi_response, request)
 
-    def _create_session(
-        self, *, max_clients: int = 1, verify: bool = False
-    ) -> curl_cffi.AsyncSession:
+    def _create_session(self) -> curl_cffi.AsyncSession:
         return curl_cffi.AsyncSession(
-            max_clients=max_clients,
-            verify=verify,
-            trust_env=False,
+            max_clients=self._max_clients,
+            **self._session_params,
         )

@@ -49,7 +49,10 @@ should be a dict with any of the following options:
   strings
 - `default_headers` - whether to set default browser headers when impersonating,
   defaults to `True`
-- `verify` - whether to verify https certs, defaults to `False`
+- `verify` - whether to verify https certs, defaults to the
+  `DOWNLOAD_VERIFY_CERTIFICATES` setting
+- `http_version` - HTTP version to force, e.g. `"v1"`, `"v2"` or `"v3"`;
+  defaults to the `CURL_CFFI_HTTP_VERSION` setting
 
 See the [curl_cffi documentation][6] for more info on these options.
 
@@ -74,6 +77,21 @@ class FingerprintsSpider(scrapy.Spider):
 `scrapy-curl-cffi` strives to adhere to established Scrapy conventions, ensuring
 that most Scrapy settings, spider attributes, request/response attributes and
 meta keys configure the crawler's behavior in an expected manner.
+
+All `curl_cffi` downloads share one `curl_cffi.AsyncSession`, created lazily on
+the first `curl_cffi` download and reused for connection pooling. The following
+settings configure it:
+
+- `CURL_CFFI_MAX_CLIENTS` - hard limit on simultaneous `curl_cffi`
+  connections, defaults to `10`
+- `DOWNLOAD_VERIFY_CERTIFICATES` - whether to verify https certs, as in
+  Scrapy itself
+- `CURL_CFFI_HTTP_VERSION` - HTTP version to force, e.g. `"v1"`, `"v2"` or
+  `"v3"`; unset lets `curl_cffi` (and browser impersonation) pick the version
+- `DOWNLOAD_BIND_ADDRESS` - local address to bind `curl_cffi` downloads to,
+  as in Scrapy itself; the `bindaddress` request meta key overrides it
+- `DOWNLOAD_TLS_MIN_VERSION` / `DOWNLOAD_TLS_MAX_VERSION` - TLS version
+  limits, as in Scrapy itself
 
 ## Similar projects
 

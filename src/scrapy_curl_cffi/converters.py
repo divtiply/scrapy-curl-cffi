@@ -2,10 +2,34 @@ from ipaddress import ip_address
 from typing import TypedDict, cast
 
 import curl_cffi
+import curl_cffi.const
+import curl_cffi.requests.exceptions
+import curl_cffi.requests.utils
 import scrapy.http
 from scrapy.responsetypes import responsetypes
 
 from .utils import parse_basic_auth_header
+
+try:
+    from scrapy.exceptions import (
+        CannotResolveHostError,
+        DownloadConnectionRefusedError,
+        DownloadFailedError,
+        DownloadTimeoutError,
+        UnsupportedURLSchemeError,
+    )
+except ImportError:  # Scrapy < 2.13
+    CannotResolveHostError = None
+    DownloadConnectionRefusedError = None
+    DownloadFailedError = None
+    DownloadTimeoutError = None
+    UnsupportedURLSchemeError = None
+
+_DATALOSS_CODES = {
+    curl_cffi.const.CurlECode.SEND_ERROR,
+    curl_cffi.const.CurlECode.RECV_ERROR,
+    curl_cffi.const.CurlECode.WEIRD_SERVER_REPLY,
+}
 
 
 class CurlCffiOptions(TypedDict, total=False):
@@ -18,6 +42,7 @@ class CurlCffiOptions(TypedDict, total=False):
     )
     default_headers: bool
     verify: bool
+    http_version: "curl_cffi.requests.utils.HttpVersionLiteral"
 
 
 class _CurlCffiRequestParamsBase(TypedDict, total=True):
@@ -99,3 +124,46 @@ def to_scrapy_response(
 
 def to_scrapy_headers(curl_cffi_headers: curl_cffi.Headers) -> scrapy.http.Headers:
     return scrapy.http.Headers(curl_cffi_headers.multi_items())
+
+
+def to_scrapy_download_error(  # noqa: PLR0911
+    exc: curl_cffi.requests.exceptions.RequestException,
+    url: str,
+    timeout: object | None,
+) -> Exception | None:
+    """Map a curl_cffi request exception onto the matching Scrapy download error.
+
+    Returns ``None`` on Scrapy versions without the download error types
+    (< 2.13), where no mapping is possible.
+    """
+    if (
+        DownloadFailedError is None
+        or DownloadTimeoutError is None
+        or UnsupportedURLSchemeError is None
+        or CannotResolveHostError is None
+        or DownloadConnectionRefusedError is None
+    ):
+        return None
+    if isinstance(exc, curl_cffi.requests.exceptions.Timeout):
+        if timeout is not None:
+            msg = f"Getting {url} took longer than {timeout} seconds."
+        else:
+            msg = f"Getting {url} timed out."
+        return DownloadTimeoutError(msg)
+    if isinstance(exc, curl_cffi.requests.exceptions.InvalidSchema):
+        return UnsupportedURLSchemeError(str(exc))
+    if isinstance(exc, curl_cffi.requests.exceptions.DNSError):
+        return CannotResolveHostError(str(exc))
+    if isinstance(
+        exc,
+        (
+            curl_cffi.requests.exceptions.SSLError,
+            curl_cffi.requests.exceptions.ProxyError,
+        ),
+    ):
+        return DownloadConnectionRefusedError(str(exc))
+    if isinstance(exc, curl_cffi.requests.exceptions.ConnectionError):
+        if exc.code in _DATALOSS_CODES:
+            return DownloadFailedError(str(exc))
+        return DownloadConnectionRefusedError(str(exc))
+    return DownloadFailedError(str(exc))
