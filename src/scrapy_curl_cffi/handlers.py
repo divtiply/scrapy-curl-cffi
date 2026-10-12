@@ -1,4 +1,3 @@
-import logging
 from typing import cast
 
 import curl_cffi
@@ -29,9 +28,6 @@ from .converters import (
     to_scrapy_download_error,
     to_scrapy_response,
 )
-from .utils import normalize_bind_address
-
-logger = logging.getLogger(__name__)
 
 
 class CurlCffiDownloadHandler(HTTP11DownloadHandler):
@@ -105,19 +101,7 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
                 "curl_cffi.requests.utils.HttpVersionLiteral", http_version
             )
         if bind_address := settings.get("DOWNLOAD_BIND_ADDRESS"):
-            normalized = (
-                None
-                if normalize_bind_address is None
-                else normalize_bind_address(bind_address)
-            )
-            if normalized is None:
-                logger.warning(
-                    "DOWNLOAD_BIND_ADDRESS is not supported by this Scrapy "
-                    "version and is ignored by %s.",
-                    self.__class__.__qualname__,
-                )
-            else:
-                params["interface"] = normalized[0]
+            params["interface"] = bind_address
         if (ssl_version := to_curl_cffi_ssl_version(settings)) is not None:
             params["curl_options"] = {curl_cffi.const.CurlOpt.SSLVERSION: ssl_version}
         return settings.getint("CURL_CFFI_MAX_CLIENTS", 10), params

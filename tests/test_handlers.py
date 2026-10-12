@@ -101,6 +101,19 @@ def test_session_config_from_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     }
 
 
+@pytest.mark.parametrize("address", ["127.0.0.2", "2001:db8::1"])
+def test_bind_address_passthrough(
+    monkeypatch: pytest.MonkeyPatch, address: str
+) -> None:
+    # curl takes a plain address in CURLOPT_INTERFACE, no normalization applied
+    handler = _make_handler(monkeypatch, settings={"DOWNLOAD_BIND_ADDRESS": address})
+    assert handler._session_params == {
+        "verify": False,
+        "trust_env": False,
+        "interface": address,
+    }
+
+
 async def test_create_session_applies_config(monkeypatch: pytest.MonkeyPatch) -> None:
     handler = _make_handler(
         monkeypatch,
