@@ -11,7 +11,7 @@ from scrapy import version_info as scrapy_version_info
 from scrapy.responsetypes import responsetypes
 from scrapy.settings import BaseSettings
 
-from .utils import _get_tls_version_limits, parse_basic_auth_header
+from .utils import parse_basic_auth_header
 
 _DATALOSS_CODES = {
     curl_cffi.const.CurlECode.SEND_ERROR,
@@ -102,16 +102,28 @@ def to_curl_cffi_headers(scrapy_headers: scrapy.http.Headers) -> curl_cffi.Heade
     return curl_cffi.Headers([(k, v) for k, vs in scrapy_headers.items() for v in vs])
 
 
+def _to_curl_cffi_tls_version(
+    settings: BaseSettings, setting_name: str
+) -> int | None:
+    """Read one TLS version setting as its curl_cffi enum value."""
+    setting = settings.get(setting_name)
+    if setting is None:
+        return None
+    try:
+        return _TLS_VERSION_MAP[setting]
+    except KeyError:
+        msg = f"Unknown {setting_name} value: {setting}"
+        raise ValueError(msg) from None
+
+
 def to_curl_cffi_ssl_version(settings: BaseSettings) -> int | None:
     """Compose the TLS version settings into curl's SSLVERSION option value.
 
     Reads DOWNLOAD_TLS_MIN_VERSION and DOWNLOAD_TLS_MAX_VERSION. Returns
-    ``None`` when neither setting is set, or when this Scrapy version lacks
-    the private helper the limits are read with.
+    ``None`` when neither setting is set.
     """
-    if _get_tls_version_limits is None:
-        return None
-    tls_min, tls_max = _get_tls_version_limits(settings, _TLS_VERSION_MAP.__getitem__)
+    tls_min = _to_curl_cffi_tls_version(settings, "DOWNLOAD_TLS_MIN_VERSION")
+    tls_max = _to_curl_cffi_tls_version(settings, "DOWNLOAD_TLS_MAX_VERSION")
     if tls_min is None and tls_max is None:
         return None
     min_part = (

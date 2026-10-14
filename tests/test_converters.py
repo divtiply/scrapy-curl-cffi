@@ -54,12 +54,20 @@ def test_ssl_version_none_without_tls_settings() -> None:
     assert to_curl_cffi_ssl_version(BaseSettings()) is None
 
 
-def test_ssl_version_none_when_helper_unavailable(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr("scrapy_curl_cffi.converters._get_tls_version_limits", None)
-    settings = BaseSettings({"DOWNLOAD_TLS_MIN_VERSION": "TLSv1.2"})
-    assert to_curl_cffi_ssl_version(settings) is None
+def test_ssl_version_composed_from_min_and_max_settings() -> None:
+    settings = BaseSettings(
+        {"DOWNLOAD_TLS_MIN_VERSION": "TLSv1.1", "DOWNLOAD_TLS_MAX_VERSION": "TLSv1.3"}
+    )
+    assert to_curl_cffi_ssl_version(settings) == (
+        curl_cffi.const.CurlSslVersion.TLSv1_1
+        | (curl_cffi.const.CurlSslVersion.TLSv1_3 << 16)
+    )
+
+
+def test_ssl_version_unknown_value_is_rejected() -> None:
+    settings = BaseSettings({"DOWNLOAD_TLS_MIN_VERSION": "TLSv9.9"})
+    with pytest.raises(ValueError, match="DOWNLOAD_TLS_MIN_VERSION"):
+        to_curl_cffi_ssl_version(settings)
 
 
 def test_timeout_maps_to_download_timeout_error() -> None:
