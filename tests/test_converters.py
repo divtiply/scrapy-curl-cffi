@@ -8,7 +8,6 @@ from scrapy.exceptions import (
     DownloadTimeoutError,
     UnsupportedURLSchemeError,
 )
-from scrapy.settings import BaseSettings
 
 from scrapy_curl_cffi.converters import (
     to_curl_cffi_request_params,
@@ -34,40 +33,34 @@ def test_unsupported_option_key_is_rejected() -> None:
         to_curl_cffi_request_params(request)
 
 
-def test_ssl_version_composed_from_min_setting() -> None:
-    settings = BaseSettings({"DOWNLOAD_TLS_MIN_VERSION": "TLSv1.2"})
-    assert to_curl_cffi_ssl_version(settings) == (
+def test_ssl_version_composed_from_min_only() -> None:
+    assert to_curl_cffi_ssl_version("TLSv1.2", None) == (
         curl_cffi.const.CurlSslVersion.TLSv1_2
         | curl_cffi.const.CurlSslVersion.MAX_DEFAULT
     )
 
 
-def test_ssl_version_composed_from_max_setting() -> None:
-    settings = BaseSettings({"DOWNLOAD_TLS_MAX_VERSION": "TLSv1.2"})
-    assert to_curl_cffi_ssl_version(settings) == (
+def test_ssl_version_composed_from_max_only() -> None:
+    assert to_curl_cffi_ssl_version(None, "TLSv1.2") == (
         curl_cffi.const.CurlSslVersion.DEFAULT
         | (curl_cffi.const.CurlSslVersion.TLSv1_2 << 16)
     )
 
 
 def test_ssl_version_none_without_tls_settings() -> None:
-    assert to_curl_cffi_ssl_version(BaseSettings()) is None
+    assert to_curl_cffi_ssl_version(None, None) is None
 
 
-def test_ssl_version_composed_from_min_and_max_settings() -> None:
-    settings = BaseSettings(
-        {"DOWNLOAD_TLS_MIN_VERSION": "TLSv1.1", "DOWNLOAD_TLS_MAX_VERSION": "TLSv1.3"}
-    )
-    assert to_curl_cffi_ssl_version(settings) == (
+def test_ssl_version_composed_from_min_and_max() -> None:
+    assert to_curl_cffi_ssl_version("TLSv1.1", "TLSv1.3") == (
         curl_cffi.const.CurlSslVersion.TLSv1_1
         | (curl_cffi.const.CurlSslVersion.TLSv1_3 << 16)
     )
 
 
 def test_ssl_version_unknown_value_is_rejected() -> None:
-    settings = BaseSettings({"DOWNLOAD_TLS_MIN_VERSION": "TLSv9.9"})
-    with pytest.raises(ValueError, match="DOWNLOAD_TLS_MIN_VERSION"):
-        to_curl_cffi_ssl_version(settings)
+    with pytest.raises(ValueError, match=r"TLSv9\.9"):
+        to_curl_cffi_ssl_version("TLSv9.9", None)
 
 
 def test_timeout_maps_to_download_timeout_error() -> None:

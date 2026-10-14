@@ -102,7 +102,11 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
             )
         if bind_address := settings.get("DOWNLOAD_BIND_ADDRESS"):
             params["interface"] = bind_address
-        if (ssl_version := to_curl_cffi_ssl_version(settings)) is not None:
+        ssl_version = to_curl_cffi_ssl_version(
+            tls_min=settings.get("DOWNLOAD_TLS_MIN_VERSION"),
+            tls_max=settings.get("DOWNLOAD_TLS_MAX_VERSION"),
+        )
+        if ssl_version is not None:
             params["curl_options"] = {curl_cffi.const.CurlOpt.SSLVERSION: ssl_version}
         return settings.getint("CURL_CFFI_MAX_CLIENTS", 10), params
 
