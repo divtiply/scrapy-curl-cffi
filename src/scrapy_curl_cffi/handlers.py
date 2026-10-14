@@ -17,7 +17,6 @@ from scrapy.core.downloader.handlers.http11 import HTTP11DownloadHandler
 from scrapy.crawler import Crawler
 from scrapy.exceptions import NotConfigured
 from scrapy.http import Request, Response
-from scrapy.settings import BaseSettings
 from scrapy.utils.defer import deferred_from_coro
 from scrapy.utils.reactor import is_asyncio_reactor_installed
 from twisted.internet.defer import Deferred
@@ -74,24 +73,8 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
         return cls(crawler)
 
     def _init_session(self, crawler: Crawler) -> None:
+        settings = crawler.settings
         self._session: curl_cffi.AsyncSession | None = None
-        self._max_clients, self._session_params = self._build_session_config(
-            crawler.settings
-        )
-
-    def _check_requirements(self) -> None:
-        if not is_asyncio_reactor_installed():
-            msg = (
-                f"{self.__class__.__qualname__} requires the asyncio Twisted "
-                f"reactor. Make sure you have it configured in the "
-                f"TWISTED_REACTOR setting. See the asyncio documentation "
-                f"of Scrapy for more information."
-            )
-            raise NotConfigured(msg)
-
-    def _build_session_config(
-        self, settings: BaseSettings
-    ) -> tuple[int, curl_cffi.requests.session.BaseSessionParams]:
         params: curl_cffi.requests.session.BaseSessionParams = {
             "verify": settings.getbool("DOWNLOAD_VERIFY_CERTIFICATES"),
             "trust_env": False,
@@ -108,7 +91,18 @@ class CurlCffiDownloadHandler(HTTP11DownloadHandler):
         )
         if ssl_version is not None:
             params["curl_options"] = {curl_cffi.const.CurlOpt.SSLVERSION: ssl_version}
-        return settings.getint("CURL_CFFI_MAX_CLIENTS", 10), params
+        self._max_clients = settings.getint("CURL_CFFI_MAX_CLIENTS", 10)
+        self._session_params = params
+
+    def _check_requirements(self) -> None:
+        if not is_asyncio_reactor_installed():
+            msg = (
+                f"{self.__class__.__qualname__} requires the asyncio Twisted "
+                f"reactor. Make sure you have it configured in the "
+                f"TWISTED_REACTOR setting. See the asyncio documentation "
+                f"of Scrapy for more information."
+            )
+            raise NotConfigured(msg)
 
     async def _download_request(self, request: Request) -> Response:
         curl_cffi_request_params = to_curl_cffi_request_params(request)
