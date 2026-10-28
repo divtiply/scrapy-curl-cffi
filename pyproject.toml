@@ -63,6 +63,7 @@ ignore = [
 tag_format = "v$version"
 version_files = ["src/scrapy_curl_cffi/__init__.py"]
 version_provider = "uv"
+annotated_tag = true
 
 [dependency-groups]
 dev = [
