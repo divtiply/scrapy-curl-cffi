@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from typing import cast
 
 import curl_cffi
+import curl_cffi.requests.exceptions
 import pytest
 from scrapy import Request
 from scrapy.core.downloader.handlers.http11 import HTTP11DownloadHandler

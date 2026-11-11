@@ -166,9 +166,9 @@ def to_scrapy_download_error(  # noqa: PLR0911
     """Map a curl_cffi request exception onto the matching Scrapy download error.
 
     Returns ``None`` on Scrapy versions without the download error types
-    (< 2.13), where no mapping is possible.
+    (< 2.15), where no mapping is possible.
     """
-    if scrapy_version_info < (2, 13):
+    if scrapy_version_info < (2, 15):
         return None
     if isinstance(exc, curl_cffi.requests.exceptions.Timeout):
         return scrapy.exceptions.DownloadTimeoutError(str(exc))

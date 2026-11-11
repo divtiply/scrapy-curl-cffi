@@ -1,4 +1,5 @@
 import curl_cffi
+import curl_cffi.requests.exceptions
 import pytest
 from scrapy import Request
 from scrapy.exceptions import (
