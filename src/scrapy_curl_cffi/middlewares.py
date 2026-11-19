@@ -28,7 +28,13 @@ class CurlCffiMiddleware:
     @classmethod
     def from_crawler(cls, crawler: Crawler) -> Self:
         settings = crawler.settings
-        options = cast("CurlCffiOptions", settings.getdict("CURL_CFFI_OPTIONS"))
+        # getdict() returns {} for an unset setting, which would route every
+        # request through curl_cffi; only attach options when configured
+        options = (
+            cast("CurlCffiOptions", settings.getdict("CURL_CFFI_OPTIONS"))
+            if settings.get("CURL_CFFI_OPTIONS") is not None
+            else None
+        )
         obj = cls(options)
         crawler.signals.connect(obj.spider_opened, signal=signals.spider_opened)
         return obj
@@ -68,9 +74,12 @@ class _CurlCffiMixin:
             return super().process_request(request)  # pyright: ignore[reportAttributeAccessIssue]
 
     def _will_use_curl_cffi_default_headers(self, request: Request) -> bool:
-        return (  # _
-            "curl_cffi_options" in request.meta
-            and request.meta["curl_cffi_options"].get("default_headers", True)
+        options = request.meta.get("curl_cffi_options")
+        # curl_cffi only adds browser default headers when impersonating
+        return bool(
+            options
+            and options.get("impersonate")
+            and options.get("default_headers", True)
         )
 
 
@@ -82,8 +91,11 @@ class DefaultHeadersMiddleware(_CurlCffiMixin, _DefaultHeadersMiddleware):
         return obj
 
     def spider_opened(self, spider: Spider) -> None:
-        headers = without_none_values(getattr(spider, "default_request_headers", {}))
-        self._headers = headers.items()
+        # only a spider that defines default_request_headers replaces the
+        # DEFAULT_REQUEST_HEADERS setting loaded in from_crawler
+        headers = getattr(spider, "default_request_headers", None)
+        if headers is not None:
+            self._headers = without_none_values(headers).items()
 
 
 class UserAgentMiddleware(_CurlCffiMixin, _UserAgentMiddleware):

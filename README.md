@@ -49,6 +49,8 @@ should be a dict with any of the following options:
   strings
 - `default_headers` - whether to set default browser headers when impersonating,
   defaults to `True`
+  (only applies with `impersonate`; otherwise Scrapy's `User-Agent` and
+  default headers are sent)
 - `verify` - whether to verify https certs, defaults to the
   `DOWNLOAD_VERIFY_CERTIFICATES` setting
 - `http_version` - HTTP version to force, e.g. `"v1"`, `"v2"` or `"v3"`;
